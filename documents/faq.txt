@@ -1,0 +1,28 @@
+Company: TechCorp Solutions
+
+What services does TechCorp offer?
+TechCorp offers web development, mobile app development, cloud solutions, and AI integration services.
+
+What are your business hours?
+We are open Monday to Friday, 9 AM to 6 PM IST. We are closed on weekends.
+
+How can I contact support?
+You can reach our support team at support@techcorp.com or call +91-9876543210.
+
+Is support available 24/7?
+Our support team is available during business hours, Monday to Friday, 9 AM to 6 PM IST. For urgent issues outside these hours, please email support@techcorp.com and we'll respond the next business day.
+
+What is your refund policy?
+We offer a 30-day money back guarantee on all our services.
+
+Where is TechCorp located?
+Our headquarters is in Mumbai, India with offices in Delhi and Bangalore.
+
+How long does a typical project take?
+Small projects take 2-4 weeks, medium projects 1-3 months, large projects 3-6 months.
+
+What technologies does TechCorp use?
+We use React, Node.js, Python, Flutter, AWS, and Google Cloud in our projects.
+
+Do you offer free consultations?
+Yes, we offer a free 30-minute consultation for all new clients.
