@@ -3,10 +3,9 @@ flask-cors
 langchain
 langchain-community
 langchain-groq
+langchain-voyageai
 langchain-text-splitters
 langchain-classic
-langchain-huggingface
-sentence-transformers
 chromadb
 pypdf
 python-dotenv
