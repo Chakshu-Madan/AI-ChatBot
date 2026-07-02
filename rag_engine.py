@@ -6,7 +6,7 @@ from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Chroma
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 DOCS_PATH = "documents"
 CHROMA_PATH = "chroma_db"
