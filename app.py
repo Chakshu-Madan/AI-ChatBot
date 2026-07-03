@@ -40,32 +40,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
 
-# Temporary debug routes 
-import time
-
-@app.route("/debug-voyage")
-def debug_voyage():
-    from langchain_voyageai import VoyageAIEmbeddings
-    try:
-        start = time.time()
-        embeddings = VoyageAIEmbeddings(
-            voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
-            model="voyage-3-lite"
-        )
-        result = embeddings.embed_query("test")
-        elapsed = time.time() - start
-        return jsonify({"status": "ok", "elapsed_seconds": elapsed, "vector_len": len(result)})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/debug-groq")
-def debug_groq():
-    from langchain_groq import ChatGroq
-    try:
-        start = time.time()
-        llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.4)
-        resp = llm.invoke("Say hello in 3 words")
-        elapsed = time.time() - start
-        return jsonify({"status": "ok", "elapsed_seconds": elapsed, "response": resp.content})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500

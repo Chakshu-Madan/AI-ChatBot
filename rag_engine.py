@@ -57,7 +57,7 @@ def build_qa_chain(vs):
     llm = ChatGroq(
         model="llama-3.1-8b-instant",
         temperature=0.4,
-        timeout=20
+        max_retries=1
     )
     memory = ConversationBufferMemory(
         memory_key="chat_history",
@@ -100,6 +100,7 @@ You:"""
         memory=memory,
         combine_docs_chain_kwargs={"prompt": custom_prompt},
         return_source_documents=True
+        verbose=True
     )
 
 def initialize_chatbot():
