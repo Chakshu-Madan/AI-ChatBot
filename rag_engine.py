@@ -14,7 +14,8 @@ CHROMA_PATH = "chroma_db"
 def get_embeddings():
     return VoyageAIEmbeddings(
         voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
-        model="voyage-3-lite"  # smallest, fastest, lowest memory
+        model="voyage-3-lite",  # smallest, fastest, lowest memory
+        timeout=20
     )
 
 def load_documents():
@@ -57,6 +58,7 @@ def build_qa_chain(vs):
     llm = ChatGroq(
         model="llama-3.1-8b-instant",
         temperature=0.4,
+        timeout=20
     )
     memory = ConversationBufferMemory(
         memory_key="chat_history",
@@ -113,4 +115,7 @@ def initialize_chatbot():
     return chain
 
 def ask_question(chain, question):
-    return chain({"question": question})
+    print(f"[DEBUG] Starting ask_question for: {question}", flush=True)
+    result = chain({"question": question})
+    print(f"[DEBUG] Finished ask_question", flush=True)
+    return result
