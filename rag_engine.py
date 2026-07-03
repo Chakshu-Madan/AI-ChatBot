@@ -15,7 +15,6 @@ def get_embeddings():
     return VoyageAIEmbeddings(
         voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
         model="voyage-3-lite",  # smallest, fastest, lowest memory
-        timeout=20
     )
 
 def load_documents():
