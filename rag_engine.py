@@ -99,7 +99,7 @@ You:"""
         retriever=vs.as_retriever(search_kwargs={"k": 3}),
         memory=memory,
         combine_docs_chain_kwargs={"prompt": custom_prompt},
-        return_source_documents=True
+        return_source_documents=True,
         verbose=True
     )
 
