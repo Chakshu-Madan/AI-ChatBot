@@ -69,19 +69,29 @@ def debug_groq():
 @app.route("/debug-retrieval")
 def debug_retrieval():
     from rag_engine import load_vectorstore
+    import time
     try:
+        print("[DEBUG] Step 1: loading vectorstore", flush=True)
         start = time.time()
         vs = load_vectorstore()
+        print(f"[DEBUG] Step 1 done in {time.time()-start:.2f}s", flush=True)
+
+        print("[DEBUG] Step 2: creating retriever", flush=True)
         retriever = vs.as_retriever(search_kwargs={"k": 3})
+        print("[DEBUG] Step 2 done", flush=True)
+
+        print("[DEBUG] Step 3: invoking retriever", flush=True)
+        start = time.time()
         docs = retriever.invoke("What services do you offer?")
-        elapsed = time.time() - start
+        print(f"[DEBUG] Step 3 done in {time.time()-start:.2f}s", flush=True)
+
         return jsonify({
             "status": "ok",
-            "elapsed_seconds": elapsed,
             "num_docs": len(docs),
             "first_doc_preview": docs[0].page_content[:100] if docs else None
         })
     except Exception as e:
+        print(f"[DEBUG] ERROR: {e}", flush=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
