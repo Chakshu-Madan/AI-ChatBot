@@ -7,6 +7,9 @@ from langchain_community.vectorstores import Chroma
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DOCS_PATH = "documents"
 CHROMA_PATH = "chroma_db"
