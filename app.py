@@ -66,6 +66,24 @@ def debug_groq():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/debug-retrieval")
+def debug_retrieval():
+    from rag_engine import load_vectorstore
+    try:
+        start = time.time()
+        vs = load_vectorstore()
+        retriever = vs.as_retriever(search_kwargs={"k": 3})
+        docs = retriever.invoke("What services do you offer?")
+        elapsed = time.time() - start
+        return jsonify({
+            "status": "ok",
+            "elapsed_seconds": elapsed,
+            "num_docs": len(docs),
+            "first_doc_preview": docs[0].page_content[:100] if docs else None
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
