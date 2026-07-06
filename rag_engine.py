@@ -209,6 +209,7 @@ def ask_question(chatbot, question):
     top_idx = np.argsort(sims)[::-1][:3]
     top_chunks = [docs[i] for i in top_idx]
     print(f"[DEBUG] Retrieved top {len(top_chunks)} chunks manually", flush=True)
+    print(f"[DEBUG] Chunk contents: {top_chunks}", flush=True)
 
     context = "\n\n".join(top_chunks)
     prompt = CUSTOM_PROMPT.format(context=context, question=question)
