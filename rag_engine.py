@@ -1,6 +1,8 @@
 import os
 os.environ["HF_HOME"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hf_cache")
 os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+os.environ["CHROMA_TELEMETRY_IMPL"] = "none"
 
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -11,6 +13,8 @@ from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
+from chromadb.config import Settings
+
 
 load_dotenv()
 
@@ -47,7 +51,8 @@ def create_vectorstore(chunks):
     vs = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
-        persist_directory=CHROMA_PATH
+        persist_directory=CHROMA_PATH,
+        client_settings=Settings(anonymized_telemetry=False)
     )
     print("Vector DB created")
     return vs
@@ -56,7 +61,8 @@ def load_vectorstore():
     embeddings = get_embeddings()
     return Chroma(
         persist_directory=CHROMA_PATH,
-        embedding_function=embeddings
+        embedding_function=embeddings,
+        client_settings=Settings(anonymized_telemetry=False)
     )
 
 def build_qa_chain(vs):
