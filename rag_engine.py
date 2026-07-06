@@ -37,11 +37,21 @@ def load_documents():
     print(f"Loaded {len(docs)} pages")
     return docs
 
+# def split_documents(docs):
+#     chunks = RecursiveCharacterTextSplitter(
+#         chunk_size=150,
+#         chunk_overlap=20
+#     ).split_documents(docs)
+#     print(f"Split into {len(chunks)} chunks")
+#     return chunks
+
 def split_documents(docs):
-    chunks = RecursiveCharacterTextSplitter(
-        chunk_size=150,
-        chunk_overlap=20
-    ).split_documents(docs)
+    full_text = "\n".join([d.page_content for d in docs])
+    blocks = [b.strip() for b in full_text.split("\n\n") if b.strip()]
+
+    from langchain_core.documents import Document
+    chunks = [Document(page_content=block) for block in blocks]
+
     print(f"Split into {len(chunks)} chunks")
     return chunks
 
