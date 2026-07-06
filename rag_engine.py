@@ -155,6 +155,23 @@ CUSTOM_PROMPT = """You are a friendly, warm customer support assistant for TechC
 ...
 """
 
+import numpy as np
+
+_docs_cache = None
+_vectors_cache = None
+
+def _load_all_chunks_and_vectors(vs, embeddings):
+    global _docs_cache, _vectors_cache
+    if _docs_cache is not None:
+        return _docs_cache, _vectors_cache
+
+    print("[DEBUG] Loading all chunks into memory (one-time)", flush=True)
+    raw = vs.get(include=["documents", "embeddings", "metadatas"])
+    _docs_cache = raw["documents"]
+    _vectors_cache = np.array(raw["embeddings"])
+    print(f"[DEBUG] Loaded {len(_docs_cache)} chunks into memory", flush=True)
+    return _docs_cache, _vectors_cache
+
 def initialize_chatbot():
     if os.path.exists(CHROMA_PATH):
         print("Loading existing DB...")
@@ -163,27 +180,40 @@ def initialize_chatbot():
         print("Building DB from documents...")
         vs = create_vectorstore(split_documents(load_documents()))
     llm = get_llm()
+    embeddings = get_embeddings()
+    docs, vectors = _load_all_chunks_and_vectors(vs, embeddings)
     print("Chatbot ready!")
-    return {"vs": vs, "llm": llm}
+    return {"vs": vs, "llm": llm, "embeddings": embeddings, "docs": docs, "vectors": vectors}
 
 def ask_question(chatbot, question):
-    vs = chatbot["vs"]
     llm = chatbot["llm"]
+    embeddings = chatbot["embeddings"]
+    docs = chatbot["docs"]
+    vectors = chatbot["vectors"]
 
-    print(f"[DEBUG] Retrieving docs for: {question}", flush=True)
-    docs = vs.similarity_search(question, k=3)
-    print(f"[DEBUG] Retrieved {len(docs)} docs", flush=True)
+    print(f"[DEBUG] Embedding question: {question}", flush=True)
+    q_vec = np.array(embeddings.embed_query(question))
+    print("[DEBUG] Question embedded", flush=True)
 
-    context = "\n\n".join([d.page_content for d in docs])
+    sims = vectors @ q_vec / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(q_vec) + 1e-8)
+    top_idx = np.argsort(sims)[::-1][:3]
+    top_chunks = [docs[i] for i in top_idx]
+    print(f"[DEBUG] Retrieved top {len(top_chunks)} chunks manually", flush=True)
+
+    context = "\n\n".join(top_chunks)
     prompt = CUSTOM_PROMPT.format(context=context, question=question)
 
     print("[DEBUG] Calling LLM", flush=True)
     response = llm.invoke(prompt)
     print("[DEBUG] LLM responded", flush=True)
 
+    class FakeDoc:
+        def __init__(self, content):
+            self.page_content = content
+            self.metadata = {}
+
     return {
         "answer": response.content,
-        "source_documents": docs
+        "source_documents": [FakeDoc(c) for c in top_chunks]
     }
-
 # ============================================
