@@ -68,29 +68,26 @@ def debug_groq():
 
 @app.route("/debug-retrieval")
 def debug_retrieval():
-    from rag_engine import load_vectorstore
+    from rag_engine import get_embeddings, CHROMA_PATH
+    from langchain_community.vectorstores import Chroma
+    from chromadb.config import Settings
     import time
     try:
-        print("[DEBUG] Step 1: loading vectorstore", flush=True)
+        print("[DEBUG] 1a: creating embeddings client", flush=True)
         start = time.time()
-        vs = load_vectorstore()
-        print(f"[DEBUG] Step 1 done in {time.time()-start:.2f}s", flush=True)
+        embeddings = get_embeddings()
+        print(f"[DEBUG] 1a done in {time.time()-start:.2f}s", flush=True)
 
-        print("[DEBUG] Step 2: embedding query directly", flush=True)
+        print("[DEBUG] 1b: opening Chroma", flush=True)
         start = time.time()
-        query_vector = vs.embeddings.embed_query("What services do you offer?")
-        print(f"[DEBUG] Step 2 done in {time.time()-start:.2f}s, vector_len={len(query_vector)}", flush=True)
+        vs = Chroma(
+            persist_directory=CHROMA_PATH,
+            embedding_function=embeddings,
+            client_settings=Settings(anonymized_telemetry=False)
+        )
+        print(f"[DEBUG] 1b done in {time.time()-start:.2f}s", flush=True)
 
-        print("[DEBUG] Step 3: similarity search by vector", flush=True)
-        start = time.time()
-        docs = vs.similarity_search_by_vector(query_vector, k=3)
-        print(f"[DEBUG] Step 3 done in {time.time()-start:.2f}s, num_docs={len(docs)}", flush=True)
-
-        return jsonify({
-            "status": "ok",
-            "num_docs": len(docs),
-            "first_doc_preview": docs[0].page_content[:100] if docs else None
-        })
+        return jsonify({"status": "ok"})
     except Exception as e:
         print(f"[DEBUG] ERROR: {e}", flush=True)
         return jsonify({"status": "error", "message": str(e)}), 500
