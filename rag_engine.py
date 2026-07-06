@@ -12,10 +12,9 @@ from langchain_community.vectorstores import Chroma
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
-from dotenv import load_dotenv
+import chromadb
 from chromadb.config import Settings
-
-
+from dotenv import load_dotenv
 load_dotenv()
 
 DOCS_PATH = "documents"
@@ -48,21 +47,27 @@ def split_documents(docs):
 
 def create_vectorstore(chunks):
     embeddings = get_embeddings()
+    client = chromadb.PersistentClient(
+        path=CHROMA_PATH,
+        settings=Settings(anonymized_telemetry=False)
+    )
     vs = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
-        persist_directory=CHROMA_PATH,
-        client_settings=Settings(anonymized_telemetry=False)
+        client=client
     )
     print("Vector DB created")
     return vs
 
 def load_vectorstore():
     embeddings = get_embeddings()
+    client = chromadb.PersistentClient(
+        path=CHROMA_PATH,
+        settings=Settings(anonymized_telemetry=False)
+    )
     return Chroma(
-        persist_directory=CHROMA_PATH,
-        embedding_function=embeddings,
-        client_settings=Settings(anonymized_telemetry=False)
+        client=client,
+        embedding_function=embeddings
     )
 
 def build_qa_chain(vs):
