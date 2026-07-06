@@ -92,6 +92,37 @@ def debug_retrieval():
         print(f"[DEBUG] ERROR: {e}", flush=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/debug-full-chain")
+def debug_full_chain():
+    from rag_engine import load_vectorstore, build_qa_chain
+    import time
+    try:
+        print("[DEBUG] A: loading vectorstore", flush=True)
+        start = time.time()
+        vs = load_vectorstore()
+        print(f"[DEBUG] A done in {time.time()-start:.2f}s", flush=True)
+
+        print("[DEBUG] B: retriever query", flush=True)
+        start = time.time()
+        retriever = vs.as_retriever(search_kwargs={"k": 3})
+        docs = retriever.invoke("What is your refund policy?")
+        print(f"[DEBUG] B done in {time.time()-start:.2f}s, num_docs={len(docs)}", flush=True)
+
+        print("[DEBUG] C: building chain", flush=True)
+        start = time.time()
+        chain = build_qa_chain(vs)
+        print(f"[DEBUG] C done in {time.time()-start:.2f}s", flush=True)
+
+        print("[DEBUG] D: invoking full chain", flush=True)
+        start = time.time()
+        result = chain({"question": "What is your refund policy?"})
+        print(f"[DEBUG] D done in {time.time()-start:.2f}s", flush=True)
+
+        return jsonify({"status": "ok", "answer": result.get("answer")})
+    except Exception as e:
+        print(f"[DEBUG] ERROR: {e}", flush=True)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
