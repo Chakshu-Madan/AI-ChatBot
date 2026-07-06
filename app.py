@@ -76,14 +76,15 @@ def debug_retrieval():
         vs = load_vectorstore()
         print(f"[DEBUG] Step 1 done in {time.time()-start:.2f}s", flush=True)
 
-        print("[DEBUG] Step 2: creating retriever", flush=True)
-        retriever = vs.as_retriever(search_kwargs={"k": 3})
-        print("[DEBUG] Step 2 done", flush=True)
-
-        print("[DEBUG] Step 3: invoking retriever", flush=True)
+        print("[DEBUG] Step 2: embedding query directly", flush=True)
         start = time.time()
-        docs = retriever.invoke("What services do you offer?")
-        print(f"[DEBUG] Step 3 done in {time.time()-start:.2f}s", flush=True)
+        query_vector = vs.embeddings.embed_query("What services do you offer?")
+        print(f"[DEBUG] Step 2 done in {time.time()-start:.2f}s, vector_len={len(query_vector)}", flush=True)
+
+        print("[DEBUG] Step 3: similarity search by vector", flush=True)
+        start = time.time()
+        docs = vs.similarity_search_by_vector(query_vector, k=3)
+        print(f"[DEBUG] Step 3 done in {time.time()-start:.2f}s, num_docs={len(docs)}", flush=True)
 
         return jsonify({
             "status": "ok",
