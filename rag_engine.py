@@ -59,16 +59,23 @@ def create_vectorstore(chunks):
     print("Vector DB created")
     return vs
 
+_vectorstore_instance = None
+
 def load_vectorstore():
+    global _vectorstore_instance
+    if _vectorstore_instance is not None:
+        return _vectorstore_instance
+
     embeddings = get_embeddings()
     client = chromadb.PersistentClient(
         path=CHROMA_PATH,
         settings=Settings(anonymized_telemetry=False)
     )
-    return Chroma(
+    _vectorstore_instance = Chroma(
         client=client,
         embedding_function=embeddings
     )
+    return _vectorstore_instance
 
 def build_qa_chain(vs):
     llm = ChatGroq(
