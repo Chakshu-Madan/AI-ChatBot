@@ -28,17 +28,19 @@ def get_embeddings():
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
-def invoke_with_timeout(retriever, query, timeout=15):
+import time
+
+def invoke_with_timeout(func, *args, timeout=15, **kwargs):
     executor = ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(retriever.invoke, query)
+    future = executor.submit(func, *args, **kwargs)
     try:
         result = future.result(timeout=timeout)
         executor.shutdown(wait=False)
         return result
     except FutureTimeoutError:
         executor.shutdown(wait=False)
-        raise TimeoutError(f"Retriever call timed out after {timeout}s")
-
+        raise TimeoutError(f"Call timed out after {timeout}s")
+    
 def load_documents():
     docs = []
     for file in os.listdir(DOCS_PATH):
@@ -153,6 +155,13 @@ def initialize_chatbot():
 
 def ask_question(chain, question):
     print(f"[DEBUG] Starting ask_question for: {question}", flush=True)
-    result = chain({"question": question})
-    print(f"[DEBUG] Finished ask_question", flush=True)
-    return result
+    try:
+        result = invoke_with_timeout(chain, {"question": question}, timeout=20)
+        print(f"[DEBUG] Finished ask_question", flush=True)
+        return result
+    except TimeoutError:
+        print(f"[DEBUG] ask_question timed out", flush=True)
+        return {
+            "answer": "I'm getting a lot of questions right now — give me a few seconds and try again!",
+            "source_documents": []
+        }
