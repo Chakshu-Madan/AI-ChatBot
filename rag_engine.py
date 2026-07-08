@@ -29,12 +29,15 @@ def get_embeddings():
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 def invoke_with_timeout(retriever, query, timeout=15):
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(retriever.invoke, query)
-        try:
-            return future.result(timeout=timeout)
-        except FutureTimeoutError:
-            raise TimeoutError(f"Retriever call timed out after {timeout}s")
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(retriever.invoke, query)
+    try:
+        result = future.result(timeout=timeout)
+        executor.shutdown(wait=False)
+        return result
+    except FutureTimeoutError:
+        executor.shutdown(wait=False)
+        raise TimeoutError(f"Retriever call timed out after {timeout}s")
 
 def load_documents():
     docs = []
