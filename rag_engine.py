@@ -23,7 +23,8 @@ CHROMA_PATH = "chroma_db"
 def get_embeddings():
     return VoyageAIEmbeddings(
         voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
-        model="voyage-3-lite",  # smallest, fastest, lowest memory
+        model="voyage-3-lite",  
+        timeout=10
     )
 
 def load_documents():

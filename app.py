@@ -41,16 +41,17 @@ import time
 
 @app.route("/debug-voyage")
 def debug_voyage():
-    from langchain_voyageai import VoyageAIEmbeddings
+    import time
     try:
+        from rag_engine import get_embeddings
         start = time.time()
-        embeddings = VoyageAIEmbeddings(
-            voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
-            model="voyage-3-lite"
-        )
-        result = embeddings.embed_query("test")
-        elapsed = time.time() - start
-        return jsonify({"status": "ok", "elapsed_seconds": elapsed, "vector_len": len(result)})
+        emb = get_embeddings()
+        vector = emb.embed_query("test")
+        return jsonify({
+            "status": "ok",
+            "took": f"{time.time()-start:.2f}s",
+            "vector_len": len(vector)
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
