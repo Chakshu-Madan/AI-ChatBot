@@ -24,8 +24,17 @@ def get_embeddings():
     return VoyageAIEmbeddings(
         voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
         model="voyage-3-lite",  
-        timeout=10
     )
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+def invoke_with_timeout(retriever, query, timeout=15):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(retriever.invoke, query)
+        try:
+            return future.result(timeout=timeout)
+        except FutureTimeoutError:
+            raise TimeoutError(f"Retriever call timed out after {timeout}s")
 
 def load_documents():
     docs = []

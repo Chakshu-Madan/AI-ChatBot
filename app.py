@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 from rag_engine import initialize_chatbot, ask_question
+from rag_engine import initialize_chatbot, ask_question, invoke_with_timeout
 
 app = Flask(__name__)
 CORS(app)
@@ -106,7 +107,7 @@ def debug_full_chain():
         print("[DEBUG] B: retriever query", flush=True)
         start = time.time()
         retriever = vs.as_retriever(search_kwargs={"k": 3})
-        docs = retriever.invoke("What is your refund policy?")
+        docs = invoke_with_timeout(retriever, "What is your refund policy?", timeout=15)
         print(f"[DEBUG] B done in {time.time()-start:.2f}s, num_docs={len(docs)}", flush=True)
 
         print("[DEBUG] C: building chain", flush=True)
