@@ -1,7 +1,6 @@
 import os
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
-from rag_engine import initialize_chatbot, ask_question
 from rag_engine import initialize_chatbot, ask_question, invoke_with_timeout
 
 app = Flask(__name__)
@@ -96,7 +95,7 @@ def debug_retrieval():
 
 @app.route("/debug-full-chain")
 def debug_full_chain():
-    from rag_engine import load_vectorstore, build_qa_chain
+    from rag_engine import load_vectorstore, build_qa_chain, invoke_with_timeout
     import time
     try:
         print("[DEBUG] A: loading vectorstore", flush=True)
