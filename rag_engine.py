@@ -12,21 +12,35 @@ from langchain_community.vectorstores import Chroma
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
-import chromadb
 from chromadb.config import Settings
+import chromadb
+import voyageai
 from dotenv import load_dotenv
 load_dotenv()
 
 DOCS_PATH = "documents"
 CHROMA_PATH = "chroma_db"
 
-def get_embeddings():
-    return VoyageAIEmbeddings(
-        voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
-        model="voyage-3-lite",  
-        max_retries=0,
-    )
+class FastVoyageAIEmbeddings(VoyageAIEmbeddings):
+    """VoyageAIEmbeddings with a hard timeout and no retries,
+    so a slow/rate-limited call fails fast instead of hanging."""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        api_key = self.voyage_api_key.get_secret_value()
+        # Rebuild the internal client with timeout + max_retries set
+        self._client = voyageai.Client(
+            api_key=api_key,
+            timeout=10,
+            max_retries=0,
+        )
+
+def get_embeddings():
+    return FastVoyageAIEmbeddings(
+        voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
+        model="voyage-3-lite",
+    )
+    
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 import time
