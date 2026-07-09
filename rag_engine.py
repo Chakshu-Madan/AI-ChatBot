@@ -24,6 +24,7 @@ def get_embeddings():
     return VoyageAIEmbeddings(
         voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
         model="voyage-3-lite",  
+        max_retries=0,
     )
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
