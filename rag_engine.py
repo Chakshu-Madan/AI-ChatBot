@@ -171,7 +171,7 @@ def initialize_chatbot():
 def ask_question(chain, question):
     print(f"[DEBUG] Starting ask_question for: {question}", flush=True)
     try:
-        result = invoke_with_timeout(chain, {"question": question}, timeout=35)
+        result = invoke_with_timeout(chain, {"question": question}, timeout=60)
         print(f"[DEBUG] Finished ask_question", flush=True)
         return result
     except TimeoutError:
