@@ -6,7 +6,7 @@ os.environ["CHROMA_TELEMETRY_IMPL"] = "none"
 
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_voyageai import VoyageAIEmbeddings
+from fastembed import TextEmbedding
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Chroma
 from langchain_classic.chains import ConversationalRetrievalChain
@@ -14,32 +14,31 @@ from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
 from chromadb.config import Settings
 import chromadb
-import voyageai
 from dotenv import load_dotenv
 load_dotenv()
 
 DOCS_PATH = "documents"
 CHROMA_PATH = "chroma_db"
 
-class FastVoyageAIEmbeddings(VoyageAIEmbeddings):
-    """VoyageAIEmbeddings with a hard timeout and no retries,
-    so a slow/rate-limited call fails fast instead of hanging."""
+class LocalEmbeddings:
+    """Local embeddings via fastembed — no external API, no rate limits, no network dependency."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        api_key = self.voyage_api_key.get_secret_value()
-        # Rebuild the internal client with timeout + max_retries set
-        self._client = voyageai.Client(
-            api_key=api_key,
-            timeout=10,
-            max_retries=0,
+    def __init__(self):
+        self.model = TextEmbedding(
+            model_name="BAAI/bge-small-en-v1.5",
+            cache_dir="./fastembed_cache",
+            local_files_only=True,  # never attempt a network download
         )
 
+    def embed_documents(self, texts):
+        return [emb.tolist() for emb in self.model.embed(texts)]
+
+    def embed_query(self, text):
+        return list(self.model.embed([text]))[0].tolist()
+
+
 def get_embeddings():
-    return FastVoyageAIEmbeddings(
-        voyage_api_key=os.environ.get("VOYAGE_API_KEY"),
-        model="voyage-3-lite",
-    )
+    return LocalEmbeddings()
     
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 

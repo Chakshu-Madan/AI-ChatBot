@@ -4,10 +4,10 @@ langchain
 langchain-core
 langchain-community
 langchain-groq
-langchain-voyageai
 langchain-text-splitters
 langchain-classic
 chromadb
 pypdf
 python-dotenv
 gunicorn
+fastembed
