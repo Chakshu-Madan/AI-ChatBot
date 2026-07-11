@@ -141,6 +141,24 @@ def debug_embed_only():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/debug-chroma-only")
+def debug_chroma_only():
+    import time
+    try:
+        from rag_engine import load_vectorstore
+        start = time.time()
+        vs = load_vectorstore()
+        print(f"[DEBUG] vectorstore loaded in {time.time()-start:.2f}s", flush=True)
+
+        start = time.time()
+        collection = vs._collection
+        count = collection.count()
+        print(f"[DEBUG] collection.count() done in {time.time()-start:.2f}s, count={count}", flush=True)
+
+        return jsonify({"status": "ok", "count": count})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
