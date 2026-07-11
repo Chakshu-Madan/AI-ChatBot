@@ -106,7 +106,7 @@ def debug_full_chain():
         print("[DEBUG] B: retriever query", flush=True)
         start = time.time()
         retriever = vs.as_retriever(search_kwargs={"k": 3})
-        docs = invoke_with_timeout(retriever.invoke, "What is your refund policy?", timeout=60)        
+        docs = retriever.invoke("What is your refund policy?")        
         print(f"[DEBUG] B done in {time.time()-start:.2f}s, num_docs={len(docs)}", flush=True)
 
         print("[DEBUG] C: building chain", flush=True)
