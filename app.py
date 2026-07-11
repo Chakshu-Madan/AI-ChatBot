@@ -124,6 +124,23 @@ def debug_full_chain():
         print(f"[DEBUG] ERROR: {e}", flush=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/debug-embed-only")
+def debug_embed_only():
+    import time
+    try:
+        from rag_engine import get_embeddings
+        start = time.time()
+        emb = get_embeddings()
+        print(f"[DEBUG] Model loaded in {time.time()-start:.2f}s", flush=True)
+
+        start = time.time()
+        vector = emb.embed_query("What is your refund policy?")
+        print(f"[DEBUG] Embedded in {time.time()-start:.2f}s", flush=True)
+
+        return jsonify({"status": "ok", "vector_len": len(vector)})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port)
