@@ -28,6 +28,7 @@ class LocalEmbeddings:
             model_name="BAAI/bge-small-en-v1.5",
             cache_dir="./fastembed_cache",
             local_files_only=True,  # never attempt a network download
+            threads=1,  # avoid CPU throttling under Render's 0.15 CPU limit           
         )
 
     def embed_documents(self, texts):
