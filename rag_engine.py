@@ -8,27 +8,22 @@ from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from fastembed import TextEmbedding
 from langchain_groq import ChatGroq
-from langchain_community.vectorstores import Chroma
-from langchain_classic.chains import ConversationalRetrievalChain
-from langchain_classic.memory import ConversationBufferMemory
-from langchain_core.prompts import PromptTemplate
-from chromadb.config import Settings
-import chromadb
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+import time
+import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 
 DOCS_PATH = "documents"
-CHROMA_PATH = "chroma_db"
 
+# --- Embeddings (unchanged, already proven fast and reliable) ---
 class LocalEmbeddings:
-    """Local embeddings via fastembed — no external API, no rate limits, no network dependency."""
-
     def __init__(self):
         self.model = TextEmbedding(
             model_name="BAAI/bge-small-en-v1.5",
             cache_dir="./fastembed_cache",
-            local_files_only=True,  # never attempt a network download
-            threads=1,  # avoid CPU throttling under Render's 0.15 CPU limit           
+            local_files_only=True,
+            threads=1,
         )
 
     def embed_documents(self, texts):
@@ -37,13 +32,63 @@ class LocalEmbeddings:
     def embed_query(self, text):
         return list(self.model.embed([text]))[0].tolist()
 
-
 def get_embeddings():
     return LocalEmbeddings()
     
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+# --- In-memory index, built once at startup ---
+_index_cache = None  # (texts, vectors, docs, embeddings)
 
-import time
+def build_index():
+    global _index_cache
+    if _index_cache is not None:
+        return _index_cache
+
+    docs = split_documents(load_documents())
+    texts = [d.page_content for d in docs]
+    embeddings = get_embeddings()
+    vectors = np.array(embeddings.embed_documents(texts), dtype=np.float32)
+    _index_cache = (texts, vectors, docs, embeddings)
+    return _index_cache
+
+def retrieve_docs(query, k=3):
+    texts, vectors, docs, embeddings = build_index()
+    query_vec = np.array(embeddings.embed_query(query), dtype=np.float32)
+
+    norms = np.linalg.norm(vectors, axis=1) * (np.linalg.norm(query_vec) + 1e-10)
+    sims = (vectors @ query_vec) / (norms + 1e-10)
+    top_k_idx = np.argsort(sims)[::-1][:k]
+    return [docs[i] for i in top_k_idx]
+
+# --- LLM + manual chat flow (replaces ConversationalRetrievalChain) ---
+CUSTOM_PROMPT_TEMPLATE = """You are a friendly, warm customer support assistant for TechCorp.
+Talk like a real helpful person, not a robot - use contractions (we're, don't, that's),
+keep it conversational and brief.
+
+Rules:
+- Answer using ONLY the info below. Never make things up.
+- If the answer isn't in the info, just say so naturally - something like
+  "Hmm, I don't have that on hand, but feel free to email support@techcorp.com and they can help!"
+  Don't explain what the document does or doesn't mention - just say you don't know and offer a next step.
+- Keep answers short and to the point, like a real chat message - 1 to 3 sentences usually.
+- Never sound like you're reading from a manual.
+- NEVER say phrases like "according to the information", "based on what's provided", "the document states",
+  "the information says", or anything that reveals you're reading from a knowledge base.
+
+Info you have access to:
+{context}
+
+Previous conversation:
+{chat_history}
+
+Customer: {question}
+You:"""
+
+def build_llm():
+    return ChatGroq(
+        model="llama-3.1-8b-instant",
+        temperature=0.4,
+        max_retries=1,
+    )
 
 def invoke_with_timeout(func, *args, timeout=15, **kwargs):
     executor = ThreadPoolExecutor(max_workers=1)
@@ -75,108 +120,37 @@ def split_documents(docs):
     print(f"Split into {len(chunks)} chunks")
     return chunks
 
-def create_vectorstore(chunks):
-    embeddings = get_embeddings()
-    client = chromadb.PersistentClient(
-        path=CHROMA_PATH,
-        settings=Settings(anonymized_telemetry=False)
-    )
-    vs = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        client=client
-    )
-    print("Vector DB created")
-    return vs
-
-_vectorstore_instance = None
-
-def load_vectorstore():
-    global _vectorstore_instance
-    if _vectorstore_instance is not None:
-        return _vectorstore_instance
-
-    embeddings = get_embeddings()
-    client = chromadb.PersistentClient(
-        path=CHROMA_PATH,
-        settings=Settings(anonymized_telemetry=False)
-    )
-    _vectorstore_instance = Chroma(
-        client=client,
-        embedding_function=embeddings
-    )
-    return _vectorstore_instance
-
-def build_qa_chain(vs):
-    llm = ChatGroq(
-        model="llama-3.1-8b-instant",
-        temperature=0.4,
-        max_retries=1
-    )
-    memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        return_messages=True,
-        output_key="answer"
-    )
-
-    custom_prompt = PromptTemplate(
-        input_variables=["context", "question", "chat_history"],
-        template="""You are a friendly, warm customer support assistant for TechCorp.
-Talk like a real helpful person, not a robot - use contractions (we're, don't, that's),
-keep it conversational and brief.
-
-Rules:
-- Answer using ONLY the info below. Never make things up.
-- If the answer isn't in the info, just say so naturally - something like
-  "Hmm, I don't have that on hand, but feel free to email support@techcorp.com and they can help!"
-  Don't explain what the document does or doesn't mention - just say you don't know and offer a next step.
-- Keep answers short and to the point, like a real chat message - 1 to 3 sentences usually.
-- Never sound like you're reading from a manual.
-- NEVER say phrases like "according to the information", "based on what's provided", "the document states",
-  "the information says", or anything that reveals you're reading from a knowledge base.
-  Just state the answer directly and naturally, like you already knew it.
-- Bad: "According to the information, support is available Monday to Friday."
-- Good: "Support's available Monday to Friday, 9 AM to 6 PM - we're closed on weekends though!"
-
-Info you have access to:
-{context}
-
-Previous conversation:
-{chat_history}
-
-Customer: {question}
-You:"""
-    )
-
-    return ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=vs.as_retriever(search_kwargs={"k": 3}),
-        memory=memory,
-        combine_docs_chain_kwargs={"prompt": custom_prompt},
-        return_source_documents=True,
-        verbose=True
-    )
-
 def initialize_chatbot():
-    if os.path.exists(CHROMA_PATH):
-        print("Loading existing DB...")
-        vs = load_vectorstore()
-    else:
-        print("Building DB from documents...")
-        vs = create_vectorstore(split_documents(load_documents()))
-    chain = build_qa_chain(vs)
-    print("Chatbot ready!")
-    return chain
+    build_index()  # warm the index once at startup
+    llm = build_llm()
+    memory = []  # list of (question, answer) tuples, in-memory per process
+    return {"llm": llm, "memory": memory}
 
-def ask_question(chain, question):
-    print(f"[DEBUG] Starting ask_question for: {question}", flush=True)
+def ask_question(chatbot_state, question):
+    llm = chatbot_state["llm"]
+    memory = chatbot_state["memory"]
+
+    print(f"[DEBUG] Retrieving docs for: {question}", flush=True)
+    docs = retrieve_docs(question, k=3)
+    context = "\n\n".join(d.page_content for d in docs)
+
+    history_text = "\n".join(f"Customer: {q}\nYou: {a}" for q, a in memory[-3:])
+
+    prompt = CUSTOM_PROMPT_TEMPLATE.format(
+        context=context, chat_history=history_text, question=question
+    )
+
+    print(f"[DEBUG] Calling LLM", flush=True)
     try:
-        result = invoke_with_timeout(chain, {"question": question}, timeout=60)
-        print(f"[DEBUG] Finished ask_question", flush=True)
-        return result
+        response = invoke_with_timeout(llm.invoke, prompt, timeout=30)
+        answer = response.content
     except TimeoutError:
-        print(f"[DEBUG] ask_question timed out", flush=True)
+        print(f"[DEBUG] LLM call timed out", flush=True)
         return {
             "answer": "I'm getting a lot of questions right now — give me a few seconds and try again!",
-            "source_documents": []
+            "source_documents": [],
         }
+
+    memory.append((question, answer))
+    print(f"[DEBUG] Done", flush=True)
+    return {"answer": answer, "source_documents": docs}

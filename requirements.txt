@@ -6,7 +6,6 @@ langchain-community
 langchain-groq
 langchain-text-splitters
 langchain-classic
-chromadb
 pypdf
 python-dotenv
 gunicorn
