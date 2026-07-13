@@ -50,34 +50,85 @@
   </div>
 </div>
 <script>
+  // One session ID per browser, persisted across reloads
+  function getSessionId() {
+    let id = localStorage.getItem('chat_session_id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('chat_session_id', id);
+    }
+    return id;
+  }
+
   function toggleChat() { document.getElementById('chat-window').classList.toggle('open'); }
   function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+
   async function sendMessage() {
-    const input=document.getElementById('user-input');
-    const msg=input.value.trim(); if(!msg) return;
-    addMessage(msg,'user'); input.value='';
-    document.getElementById('send-btn').disabled=true;
-    const tid=showTyping();
+    const input = document.getElementById('user-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    addMessage(msg, 'user');
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+    const tid = showTyping();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35000); // give the backend's own 30s timeout room to fire first
+
     try {
-      const res=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
-      const data=await res.json(); removeTyping(tid);
-      addMessage(data.answer||'Sorry, no answer found.','bot',data.sources||[]);
-    } catch(e){removeTyping(tid);addMessage('Connection error.','bot');}
-    document.getElementById('send-btn').disabled=false;
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, session_id: getSessionId() }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      removeTyping(tid);
+      addMessage(data.answer || 'Sorry, no answer found.', 'bot', data.sources || []);
+    } catch (e) {
+      clearTimeout(timeoutId);
+      removeTyping(tid);
+      const msg = e.name === 'AbortError' ? 'That took too long — please try again.' : 'Connection error.';
+      addMessage(msg, 'bot');
+    }
+    document.getElementById('send-btn').disabled = false;
   }
-  function addMessage(text,role,sources=[]){
-    const msgs=document.getElementById('messages');
-    const div=document.createElement('div'); div.className=`message ${role}`;
-    div.innerHTML=`<div class="bubble">${text}</div>`;
-    if(sources.length) div.innerHTML+=`<div class="source-tag">📄 ${sources.join(', ')}</div>`;
-    msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
+
+  function addMessage(text, role, sources = []) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    div.appendChild(bubble);
+
+    if (sources.length) {
+      const tag = document.createElement('div');
+      tag.className = 'source-tag';
+      tag.textContent = `📄 ${sources.join(', ')}`;
+      div.appendChild(tag);
+    }
+
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
   }
-  function showTyping(){
-    const msgs=document.getElementById('messages'); const id='t'+Date.now();
-    msgs.innerHTML+=`<div class="message bot typing" id="${id}"><div class="bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-    msgs.scrollTop=msgs.scrollHeight; return id;
+
+  function showTyping() {
+    const msgs = document.getElementById('messages');
+    const id = 't' + crypto.randomUUID();
+    const div = document.createElement('div');
+    div.className = 'message bot typing';
+    div.id = id;
+    div.innerHTML = `<div class="bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return id;
   }
-  function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
+
+  function removeTyping(id) { const el = document.getElementById(id); if (el) el.remove(); }
 </script>
 </body>
 </html>

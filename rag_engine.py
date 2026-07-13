@@ -120,15 +120,25 @@ def split_documents(docs):
     print(f"Split into {len(chunks)} chunks")
     return chunks
 
+_session_memories = {}
+MAX_SESSIONS = 500  # simple cap so this dict doesn't grow forever on a long-running server
+
+def get_memory(session_id):
+    if session_id not in _session_memories:
+        if len(_session_memories) >= MAX_SESSIONS:
+            oldest = next(iter(_session_memories))  # evict oldest session (dicts preserve insertion order)
+            del _session_memories[oldest]
+        _session_memories[session_id] = []
+    return _session_memories[session_id]
+
 def initialize_chatbot():
     build_index()  # warm the index once at startup
     llm = build_llm()
-    memory = []  # list of (question, answer) tuples, in-memory per process
-    return {"llm": llm, "memory": memory}
+    return {"llm": llm}
 
-def ask_question(chatbot_state, question):
+def ask_question(chatbot_state, session_id, question):
     llm = chatbot_state["llm"]
-    memory = chatbot_state["memory"]
+    memory = get_memory(session_id)
 
     print(f"[DEBUG] Retrieving docs for: {question}", flush=True)
     docs = retrieve_docs(question, k=3)

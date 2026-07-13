@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 from rag_engine import initialize_chatbot, ask_question, invoke_with_timeout
+import uuid
 
 app = Flask(__name__)
 CORS(app)
@@ -21,13 +22,14 @@ def index():
 def chat():
     data = request.get_json()
     user_message = data.get("message", "").strip()
+    session_id = data.get("session_id") or str(uuid.uuid4())
     if not user_message:
         return jsonify({"error": "Empty message"}), 400
     try:
-        result = ask_question(qa_chain, user_message)
+        result = ask_question(qa_chain, session_id, user_message)
         sources = list(set([os.path.basename(d.metadata.get("source", ""))
                             for d in result.get("source_documents", [])]))
-        return jsonify({"answer": result["answer"], "sources": sources})
+        return jsonify({"answer": result["answer"], "sources": sources, "session_id": session_id})
     except Exception as e:
         print(f"❌ Error: {e}")
         return jsonify({"error": "Service temporarily unavailable. Please try again."}), 500
