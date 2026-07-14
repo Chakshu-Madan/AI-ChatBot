@@ -5,7 +5,17 @@ from rag_engine import initialize_chatbot, ask_question, invoke_with_timeout
 import uuid
 
 app = Flask(__name__)
-CORS(app)
+
+ALLOWED_ORIGINS = [
+    "https://style-hub-ebon.vercel.app"
+]
+
+CORS(
+    app,
+    resources={r"/chat": {"origins": ALLOWED_ORIGINS}},
+    methods=["POST"],
+    allow_headers=["Content-Type"]
+)
 
 print("🚀 Initializing chatbot...")
 qa_chain = initialize_chatbot()

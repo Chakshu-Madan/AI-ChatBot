@@ -140,6 +140,13 @@ def ask_question(chatbot_state, session_id, question):
     llm = chatbot_state["llm"]
     memory = get_memory(session_id)
 
+    # Build a richer query for retrieval that includes recent context
+    if memory:
+        last_q, last_a = memory[-1]
+        retrieval_query = f"{last_q} {last_a} {question}"
+    else:
+        retrieval_query = question
+
     print(f"[DEBUG] Retrieving docs for: {question}", flush=True)
     docs = retrieve_docs(question, k=3)
     context = "\n\n".join(d.page_content for d in docs)
