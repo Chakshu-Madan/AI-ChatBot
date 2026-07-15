@@ -28,13 +28,30 @@ with open("index.html") as f:
 def index():
     return render_template_string(HTML)
 
+MAX_MESSAGE_LENGTH = 800
+
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    user_message = data.get("message", "").strip()
-    session_id = data.get("session_id") or str(uuid.uuid4())
+    data = request.get_json(silent=True)
+    if data is None or not isinstance(data, dict):
+        return jsonify({"error": "Invalid request body"}), 400
+
+    user_message = data.get("message", "")
+    if not isinstance(user_message, str):
+        return jsonify({"error": "Message must be a string"}), 400
+
+    user_message = user_message.strip()
     if not user_message:
         return jsonify({"error": "Empty message"}), 400
+
+    if len(user_message) > MAX_MESSAGE_LENGTH:
+        return jsonify({"error": f"Message too long (max {MAX_MESSAGE_LENGTH} characters)"}), 400
+
+    session_id = data.get("session_id")
+    if session_id is not None and not isinstance(session_id, str):
+        return jsonify({"error": "Invalid session_id"}), 400
+    session_id = session_id or str(uuid.uuid4())
+
     try:
         result = ask_question(qa_chain, session_id, user_message)
         sources = list(set([os.path.basename(d.metadata.get("source", ""))
