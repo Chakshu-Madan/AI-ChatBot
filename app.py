@@ -33,6 +33,12 @@ print("✅ Chatbot ready!")
 with open("index.html") as f:
     HTML = f.read()
 
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        "error": "You're sending messages too quickly. Please wait a moment and try again."
+    }), 429
+
 @app.route("/")
 def index():
     return render_template_string(HTML)
