@@ -1,6 +1,8 @@
 import os
 from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from rag_engine import initialize_chatbot, ask_question, invoke_with_timeout
 import uuid
 
@@ -17,6 +19,13 @@ CORS(
     allow_headers=["Content-Type"]
 )
 
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],  # no global limit; we'll set it per-route
+    storage_uri="memory://"
+)
+
 print("🚀 Initializing chatbot...")
 qa_chain = initialize_chatbot()
 print("✅ Chatbot ready!")
@@ -31,6 +40,7 @@ def index():
 MAX_MESSAGE_LENGTH = 800
 
 @app.route("/chat", methods=["POST"])
+@limiter.limit("10 per minute")
 def chat():
     data = request.get_json(silent=True)
     if data is None or not isinstance(data, dict):
