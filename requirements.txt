@@ -11,3 +11,4 @@ pypdf
 python-dotenv
 gunicorn
 fastembed
+requests
