@@ -1,28 +1,31 @@
-Company: TechCorp Solutions
+Company: StyleHub
 
-What services does TechCorp offer?
-TechCorp offers web development, mobile app development, cloud solutions, and AI integration services.
+What is StyleHub?
+StyleHub is an online fashion and lifestyle store offering clothing, accessories, jewelry, and electronics for men and women.
 
 What are your business hours?
-We are open Monday to Friday, 9 AM to 6 PM IST. We are closed on weekends.
+Our online store is open 24/7. Our customer support team is available Monday to Friday, 9 AM to 6 PM IST.
 
 How can I contact support?
-You can reach our support team at support@techcorp.com or call +91-9876543210.
+You can reach our support team at support@stylehub.com or use this chat assistant anytime.
 
 Is support available 24/7?
-Our support team is available during business hours, Monday to Friday, 9 AM to 6 PM IST. For urgent issues outside these hours, please email support@techcorp.com and we'll respond the next business day.
+This chat assistant is available 24/7 to answer questions about our products, pricing, and orders. Our human support team is available Monday to Friday, 9 AM to 6 PM IST for anything else.
 
-What is your refund policy?
-We offer a 30-day money back guarantee on all our services.
+What is your return and refund policy?
+We offer a 7-day return policy on clothing and accessories in unused condition with original tags. Refunds are processed within 5-7 business days after we receive the returned item. Electronics and jewelry are final sale and not eligible for return or refund.
 
-Where is TechCorp located?
-Our headquarters is in Mumbai, India with offices in Delhi and Bangalore.
+Do you offer free shipping?
+Yes, we offer free shipping on all orders.
 
-How long does a typical project take?
-Small projects take 2-4 weeks, medium projects 1-3 months, large projects 3-6 months.
+What payment methods do you accept?
+We accept all major credit and debit cards, UPI, and net banking.
 
-What technologies does TechCorp use?
-We use React, Node.js, Python, Flutter, AWS, and Google Cloud in our projects.
+How long does delivery take?
+Standard delivery takes 3-7 business days depending on your location.
 
-Do you offer free consultations?
-Yes, we offer a free 30-minute consultation for all new clients.
+Can I track my order?
+Yes, once your order ships you'll receive a tracking link via email.
+
+Do you offer size exchanges?
+Yes, if an item doesn't fit, you can exchange it for a different size within 7 days of delivery.
