@@ -76,7 +76,7 @@
     const timeoutId = setTimeout(() => controller.abort(), 35000); // give the backend's own 30s timeout room to fire first
 
     try {
-      const res = await fetch('https://ai-chatbot-227u.onrender.com', {
+      const res = await fetch('https://ai-chatbot-227u.onrender.com/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg, session_id: getSessionId() }),
